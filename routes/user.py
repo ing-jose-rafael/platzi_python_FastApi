@@ -246,29 +246,57 @@ def delete_user(
 ### Update a user
 @user.put(
     path="/users/{user_id}/update",
-    response_model=User,
+    # response_model=User,
     status_code=status.HTTP_200_OK,
     summary="Update a user",
     tags=["Users"]
     )
 def update_a_user(
-    userId:str = Path(
+    user_id:str = Path(
         ...,
         min_length=1,
         title='user id',
         description="This is the person id, It's required"
     ),
-    userUpdate:User = Body(...)
+    userUpdate:UserRegister = Body(...)
 ):
+    """
+    Update a User
+
+    This path operation update if a person exist in the app
+
+    Parameters:
+        - user_id: UUID
+        - user: UserRegister Request Body parameter
+
+    Returns a json with user data:
+        - user_id: UUID
+        - email: Emailstr
+        - password:str
+        - first_name: str
+        - last_name: str
+        - birth_date: datetime
+    """
+    user_dict = userUpdate.dict() # creo un diccionario apartir del request Body que envia el usuario
+    user_id = str(user_id)
+
     with open("./data/users.json","r+",encoding='utf-8') as f:
         data = json.loads(f.read())
-        userId = str(userId)
+
+        # filter_by_idUser = [user for user in data if user["user_id"]!=idUser]
         for user in data:
-            if user["user_id"] == userId:
-                user["email"]       =  userUpdate["email"]
-                user["password"]    =  userUpdate["password"]
-                user["first_name"]  =  userUpdate["first_name"]
-                user["last_name"]   =  userUpdate["last_name"]
-                user["birth_date"]  =  userUpdate["birth_date"]
-                print(user)
-        return userUpdate
+            if user["user_id"] == user_id:
+                user["email"]       =  user_dict["email"]
+                user["password"]    =  user_dict["password"]
+                user["first_name"]  =  user_dict["first_name"]
+                user["last_name"]   =  user_dict["last_name"]
+                user["birth_date"]  =  str(user_dict["birth_date"])
+                # movernos al principio del archivo
+                f.seek(0)
+                f.write(json.dumps(data))
+                f.truncate()
+                return user
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail= "¡This person doesn't exist!"
+        )    
